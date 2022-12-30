@@ -74,19 +74,23 @@ func New(conn *minecraft.Conn, store *Store, loadBalancer LoadBalancer, log inte
 		}
 	}()
 
-	srv := loadBalancer.FindServer(s)
-	if srv == nil {
-		return s, errors.New("load balancer did not return a server for the player to join")
-	}
-	srv.IncrementPlayerCount()
-	s.server = srv
-
 	s.loginMu.Lock()
 	go func() {
 		defer s.loginMu.Unlock()
+
+		srv := loadBalancer.FindServer(s)
+		if srv == nil {
+			log.Errorf("load balancer did not return a server for the player to join")
+			s.Disconnect("Load balancer did not return a downstream server")
+			return
+		}
+		srv.IncrementPlayerCount()
+		s.server = srv
+
 		srvConn, err := s.dial(srv)
 		if err != nil {
 			log.Errorf("failed to dial server %s: %w", srv.Address(), err)
+			s.Disconnect("Failed to connect to downstream server")
 			return
 		}
 
