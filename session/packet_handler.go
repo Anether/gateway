@@ -77,7 +77,7 @@ func handlePackets(s *Session) {
 
 						s.log.Infof("%s finished transferring to %s", s.Conn().IdentityData().DisplayName, s.Server().Name())
 						continue
-					} else if s.postTransfer.CAS(true, false) {
+					} else if s.postTransfer.CompareAndSwap(true, false) {
 						continue
 					}
 				}

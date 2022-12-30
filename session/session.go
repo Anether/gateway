@@ -187,7 +187,7 @@ func (s *Session) Handle(h Handler) {
 // the initial transfer.
 func (s *Session) Transfer(srv *server.Server) (err error) {
 	s.waitForLogin()
-	if !s.transferring.CAS(false, true) {
+	if !s.transferring.CompareAndSwap(false, true) {
 		return errors.New("already being transferred")
 	}
 
