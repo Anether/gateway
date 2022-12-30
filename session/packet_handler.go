@@ -3,6 +3,7 @@ package session
 import (
 	"errors"
 	"github.com/paroxity/portal/event"
+	"github.com/paroxity/portal/server"
 	"github.com/sandertv/gophertunnel/minecraft"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 	"github.com/sandertv/gophertunnel/minecraft/protocol/packet"
@@ -106,7 +107,17 @@ func handlePackets(s *Session) {
 					continue
 				}
 				ctx := event.C()
-				s.handler().HandleServerDisconnect(ctx)
+
+				var fallbackServer *server.Server
+				s.handler().HandleServerDisconnect(ctx, fallbackServer)
+
+				if fallbackServer != nil {
+					err = s.Transfer(fallbackServer)
+					if err == nil {
+						continue
+					}
+					s.log.Errorf("error while connecting to fallback server: %v", err)
+				}
 
 				c := false
 				ctx.Continue(func() {

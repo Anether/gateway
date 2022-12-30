@@ -23,9 +23,10 @@ import (
 type Session struct {
 	*translator
 
-	log   internal.Logger
-	conn  *minecraft.Conn
-	store *Store
+	log          internal.Logger
+	conn         *minecraft.Conn
+	store        *Store
+	loadBalancer LoadBalancer
 
 	hMutex sync.RWMutex
 	// h holds the current handler of the session.
@@ -53,9 +54,10 @@ type Session struct {
 // New creates a new Session with the provided connection.
 func New(conn *minecraft.Conn, store *Store, loadBalancer LoadBalancer, log internal.Logger) (s *Session, err error) {
 	s = &Session{
-		log:   log,
-		conn:  conn,
-		store: store,
+		log:          log,
+		conn:         conn,
+		store:        store,
+		loadBalancer: loadBalancer,
 
 		entities:    i64set.New(),
 		playerList:  b16set.New(),
@@ -78,7 +80,7 @@ func New(conn *minecraft.Conn, store *Store, loadBalancer LoadBalancer, log inte
 	go func() {
 		defer s.loginMu.Unlock()
 
-		srv := loadBalancer.FindServer(s)
+		srv := s.loadBalancer.FindServer(s)
 		if srv == nil {
 			log.Errorf("load balancer did not return a server for the player to join")
 			s.Disconnect("Load balancer did not return a downstream server")
